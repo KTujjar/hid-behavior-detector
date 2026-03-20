@@ -1,0 +1,3 @@
+sudo bpftrace exec_trace.bt > ../data/exec.jsonl
+sudo bpftrace fork_trace.bt > ../data/fork.jsonl
+sudo bpftrace connect_trace.bt > ../data/connect.jsonl
