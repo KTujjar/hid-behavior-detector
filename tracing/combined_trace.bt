@@ -1,0 +1,22 @@
+BEGIN
+{
+    printf("Tracing exec, fork, and connect events... Press Ctrl-C to stop.\n");
+}
+
+tracepoint:sched:sched_process_exec
+{
+    printf("{\"ts_ns\":%lld,\"type\":\"exec\",\"pid\":%d,\"comm\":\"%s\"}\n",
+        nsecs, pid, comm);
+}
+
+tracepoint:sched:sched_process_fork
+{
+    printf("{\"ts_ns\":%lld,\"type\":\"fork\",\"parent_pid\":%d,\"child_pid\":%d}\n",
+        nsecs, args->parent_pid, args->child_pid);
+}
+
+tracepoint:syscalls:sys_enter_connect
+{
+    printf("{\"ts_ns\":%lld,\"type\":\"connect\",\"pid\":%d,\"comm\":\"%s\"}\n",
+        nsecs, pid, comm);
+}
