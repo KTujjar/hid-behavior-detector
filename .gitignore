@@ -1,0 +1,6 @@
+analyzer/build/
+build/
+*.o
+*.obj
+*.exe
+.DS_Store

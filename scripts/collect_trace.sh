@@ -1,13 +1,26 @@
-mkdir -p data/run1
-sudo bpftrace tracing/exec_trace.bt > data/run1/exec.jsonl &
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+
+STAMP="$(date +%Y-%m-%d_%H-%M-%S)"
+OUT_DIR="data/trace_${STAMP}"
+mkdir -p "$OUT_DIR"
+
+echo "Writing separate logs to: $OUT_DIR"
+sudo bpftrace tracing/exec_trace.bt > "$OUT_DIR/exec.jsonl" &
 EXEC_PID=$!
-sudo bpftrace tracing/fork_trace.bt > data/run1/fork.jsonl &
+sudo bpftrace tracing/fork_trace.bt > "$OUT_DIR/fork.jsonl" &
 FORK_PID=$!
-sudo bpftrace tracing/connect_trace.bt > data/run1/connect.jsonl &
+sudo bpftrace tracing/connect_trace.bt > "$OUT_DIR/connect.jsonl" &
 CONN_PID=$!
 
-echo "Tracing started. Press Enter to stop."
-read
+echo "Tracing started (exec pid=$EXEC_PID fork=$FORK_PID connect=$CONN_PID)."
+echo "Press Enter to stop."
+read -r
 
-sudo kill $EXEC_PID $FORK_PID $CONN_PID
-
+sudo kill "$EXEC_PID" "$FORK_PID" "$CONN_PID" 2>/dev/null || true
+wait || true
+echo "Saved: $OUT_DIR/exec.jsonl $OUT_DIR/fork.jsonl $OUT_DIR/connect.jsonl"
