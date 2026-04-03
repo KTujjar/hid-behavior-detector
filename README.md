@@ -82,6 +82,27 @@ Built binary path examples:
 - Linux: `analyzer/build/hid-analyzer`
 - Windows (MSVC): `analyzer/build/Debug/hid-analyzer.exe`
 
+## Desktop interface (Linux)
+
+A simple desktop UI is available in `ui/desktop_app.py` and exposes all current workflows:
+
+- start/stop live capture (`collect_trace.sh`)
+- run combined trace flow (`normal` / `scripted`)
+- analyze one trace directory or arbitrary JSONL files
+- run batch analysis + confusion-matrix evaluation
+- configure trusted HID allowlist (`TRUSTED_HID_PAIRS`)
+- browse/filter generated reports in `results/`
+
+Run:
+
+```bash
+python3 ui/desktop_app.py
+```
+
+Reference docs for command contracts and UI feature parity:
+
+- `ui/DESKTOP_INTERFACE.md`
+
 ## Quick start (recommended end-to-end flow)
 
 1. Start telemetry collection:
