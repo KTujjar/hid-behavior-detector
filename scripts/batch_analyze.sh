@@ -25,7 +25,12 @@ analyze_file() {
   local base
   base="$(basename "$f" .jsonl)"
   local rep="$RESULTS_DIR/${base}_report.txt"
-  "$ANALYZER" --out "$rep" "$f" >/dev/null
+  local hid_sidecar="${f%.jsonl}_hid.jsonl"
+  if [[ -f "$hid_sidecar" ]]; then
+    "$ANALYZER" --out "$rep" "$f" "$hid_sidecar" >/dev/null
+  else
+    "$ANALYZER" --out "$rep" "$f" >/dev/null
+  fi
   local score flagged
   score="$(grep -E '^Suspicion score:' "$rep" | awk '{print $3}')"
   flagged="$(grep -E '^Suspicious:' "$rep" | awk '{print $2}')"
@@ -35,15 +40,19 @@ analyze_file() {
 
 shopt -s nullglob
 for f in "$PROJECT_ROOT/data/normal/"*.jsonl; do
+  [[ "$f" == *_hid.jsonl ]] && continue
   analyze_file "$f" "normal"
 done
 for f in "$PROJECT_ROOT/data/scripted/"*.jsonl; do
+  [[ "$f" == *_hid.jsonl ]] && continue
   analyze_file "$f" "scripted"
 done
 for f in "$PROJECT_ROOT/data/normal_"*.jsonl; do
+  [[ "$f" == *_hid.jsonl ]] && continue
   analyze_file "$f" "normal"
 done
 for f in "$PROJECT_ROOT/data/scripted_"*.jsonl; do
+  [[ "$f" == *_hid.jsonl ]] && continue
   analyze_file "$f" "scripted"
 done
 

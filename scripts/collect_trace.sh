@@ -16,11 +16,13 @@ sudo bpftrace tracing/fork_trace.bt > "$OUT_DIR/fork.jsonl" &
 FORK_PID=$!
 sudo bpftrace tracing/connect_trace.bt > "$OUT_DIR/connect.jsonl" &
 CONN_PID=$!
+sudo tracing/hid_provenance_monitor.sh > "$OUT_DIR/hid.jsonl" &
+HID_PID=$!
 
-echo "Tracing started (exec pid=$EXEC_PID fork=$FORK_PID connect=$CONN_PID)."
+echo "Tracing started (exec pid=$EXEC_PID fork=$FORK_PID connect=$CONN_PID hid=$HID_PID)."
 echo "Press Enter to stop."
 read -r
 
-sudo kill "$EXEC_PID" "$FORK_PID" "$CONN_PID" 2>/dev/null || true
+sudo kill "$EXEC_PID" "$FORK_PID" "$CONN_PID" "$HID_PID" 2>/dev/null || true
 wait || true
-echo "Saved: $OUT_DIR/exec.jsonl $OUT_DIR/fork.jsonl $OUT_DIR/connect.jsonl"
+echo "Saved: $OUT_DIR/exec.jsonl $OUT_DIR/fork.jsonl $OUT_DIR/connect.jsonl $OUT_DIR/hid.jsonl"

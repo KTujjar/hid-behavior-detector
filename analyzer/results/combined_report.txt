@@ -1,0 +1,22 @@
+Run: ../data/combined.jsonl
+---
+Total events:     49
+Exec events:      2
+Fork events:      36
+Connect events:   11
+HID attach events:     0
+Keyboard attaches:     0
+Untrusted kbd:         0
+Execs / second:   0.168
+Max exec burst (1s window): 2
+Mean event gap (ns): 248705658.188
+Min gap (ns): 21209
+Max gap (ns): 4210149901
+Max tree depth:   5
+PIDs w/ connect:  2
+Shell seen:       no
+---
+Suspicion score:  1
+Suspicious:       no
+Reasons:
+  - (+1) process tree depth 5 (threshold 3)

@@ -43,6 +43,19 @@ DetectionResult detect(const Features& f) {
         add_reason(r.reasons, r.score, 2,
                    "interpreter/network tool exec shortly after shell-like exec");
     }
+    if (f.untrusted_keyboard_attach_count > 0) {
+        std::ostringstream os;
+        os << "untrusted keyboard attach events: " << f.untrusted_keyboard_attach_count;
+        add_reason(r.reasons, r.score, 2, os.str());
+    }
+    if (f.first_hid_attach_ts_ns >= 0 && f.first_shell_after_hid_attach_ns >= 0 &&
+        f.first_shell_after_hid_attach_ns <= 8000000000LL) {
+        const double ms = static_cast<double>(f.first_shell_after_hid_attach_ns) / 1e6;
+        std::ostringstream os;
+        os << "first shell exec within ~" << static_cast<int>(ms + 0.5)
+           << " ms after HID attach";
+        add_reason(r.reasons, r.score, 3, os.str());
+    }
 
     r.suspicious = r.score >= kThreshold;
     return r;

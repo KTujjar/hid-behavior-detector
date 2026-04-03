@@ -18,6 +18,16 @@ mkdir -p "$OUTPUT_DIR"
 
 TIMESTAMP=$(date +%Y-%m-%d_%H-%M-%S)
 OUTPUT_FILE="$OUTPUT_DIR/${RUN_TYPE}_${TIMESTAMP}.jsonl"
+HID_OUTPUT_FILE="$OUTPUT_DIR/${RUN_TYPE}_${TIMESTAMP}_hid.jsonl"
 
 echo "Saving trace to: $OUTPUT_FILE"
+echo "Saving HID provenance to: $HID_OUTPUT_FILE"
+sudo tracing/hid_provenance_monitor.sh > "$HID_OUTPUT_FILE" &
+HID_PID=$!
+
+cleanup() {
+    sudo kill "$HID_PID" 2>/dev/null || true
+}
+trap cleanup EXIT
+
 sudo bpftrace "$TRACE_FILE" > "$OUTPUT_FILE"

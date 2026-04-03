@@ -71,6 +71,28 @@ int extract_int(const std::string& line, const char* key) {
     return static_cast<int>(extract_ll(line, key));
 }
 
+bool extract_json_bool(const std::string& line, const char* key, bool default_value = false) {
+    const std::string key_prefix = std::string("\"") + key + "\":";
+    auto pos = line.find(key_prefix);
+    if (pos == std::string::npos) {
+        return default_value;
+    }
+    pos += key_prefix.size();
+    while (pos < line.size() && std::isspace(static_cast<unsigned char>(line[pos]))) {
+        ++pos;
+    }
+    if (line.compare(pos, 4, "true") == 0) {
+        return true;
+    }
+    if (line.compare(pos, 5, "false") == 0) {
+        return false;
+    }
+    if (pos < line.size() && (line[pos] == '1' || line[pos] == '0')) {
+        return line[pos] == '1';
+    }
+    return default_value;
+}
+
 Event parse_line(const std::string& raw) {
     const std::string line = trim(raw);
     if (line.empty() || line[0] != '{') {
@@ -105,6 +127,17 @@ Event parse_line(const std::string& raw) {
         e.type = EventType::Connect;
         e.pid = extract_int(line, "pid");
         extract_json_string(line, "comm", e.comm);
+    } else if (type == "hid_attach") {
+        e.type = EventType::HidAttach;
+        extract_json_string(line, "action", e.action);
+        extract_json_string(line, "subsystem", e.subsystem);
+        extract_json_string(line, "devnode", e.devnode);
+        extract_json_string(line, "devpath", e.devpath);
+        extract_json_string(line, "vendor_id", e.vendor_id);
+        extract_json_string(line, "product_id", e.product_id);
+        extract_json_string(line, "serial", e.serial);
+        e.keyboard = extract_json_bool(line, "keyboard", false);
+        e.trusted = extract_json_bool(line, "trusted", false);
     } else {
         e.type = EventType::Unknown;
     }
@@ -122,7 +155,8 @@ std::vector<Event> load_events_from_file(const std::string& path) {
     std::string line;
     while (std::getline(in, line)) {
         Event e = parse_line(line);
-        if (e.type == EventType::Exec || e.type == EventType::Fork || e.type == EventType::Connect) {
+        if (e.type == EventType::Exec || e.type == EventType::Fork ||
+            e.type == EventType::Connect || e.type == EventType::HidAttach) {
             out.push_back(e);
         }
     }

@@ -18,5 +18,10 @@ BASE="$(basename "$DIR")"
 OUT="$PROJECT_ROOT/results/${BASE}_merged_report.txt"
 mkdir -p "$PROJECT_ROOT/results"
 
-"$ANALYZER" --out "$OUT" "$DIR/exec.jsonl" "$DIR/fork.jsonl" "$DIR/connect.jsonl"
+inputs=("$DIR/exec.jsonl" "$DIR/fork.jsonl" "$DIR/connect.jsonl")
+if [[ -f "$DIR/hid.jsonl" ]]; then
+  inputs+=("$DIR/hid.jsonl")
+fi
+
+"$ANALYZER" --out "$OUT" "${inputs[@]}"
 echo "Wrote $OUT"

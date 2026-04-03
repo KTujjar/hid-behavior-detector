@@ -84,6 +84,8 @@ Features Analyzer::compute_features() const {
     std::vector<std::int64_t> exec_ts;
     std::int64_t first_shell_ts = -1;
     std::int64_t first_connect_after_shell = -1;
+    std::int64_t first_hid_attach_ts = -1;
+    std::int64_t first_shell_after_hid_attach = -1;
 
     for (const Event& e : events_) {
         if (e.type == EventType::Exec) {
@@ -99,6 +101,17 @@ Features Analyzer::compute_features() const {
             ++f.fork_count;
         } else if (e.type == EventType::Connect) {
             ++f.connect_count;
+        } else if (e.type == EventType::HidAttach && e.action == "add") {
+            ++f.hid_attach_count;
+            if (first_hid_attach_ts < 0 || e.ts_ns < first_hid_attach_ts) {
+                first_hid_attach_ts = e.ts_ns;
+            }
+            if (e.keyboard) {
+                ++f.keyboard_attach_count;
+                if (!e.trusted) {
+                    ++f.untrusted_keyboard_attach_count;
+                }
+            }
         }
     }
 
@@ -165,6 +178,19 @@ Features Analyzer::compute_features() const {
         }
     }
     f.first_connect_after_shell_ns = first_connect_after_shell;
+    f.first_hid_attach_ts_ns = first_hid_attach_ts;
+    if (first_hid_attach_ts >= 0) {
+        for (const Event& e : events_) {
+            if (e.type != EventType::Exec || !is_shell_comm(e.comm) || e.ts_ns < first_hid_attach_ts) {
+                continue;
+            }
+            const std::int64_t delta = e.ts_ns - first_hid_attach_ts;
+            if (first_shell_after_hid_attach < 0 || delta < first_shell_after_hid_attach) {
+                first_shell_after_hid_attach = delta;
+            }
+        }
+    }
+    f.first_shell_after_hid_attach_ns = first_shell_after_hid_attach;
 
     std::unordered_set<int> child_pids;
     std::unordered_map<int, std::vector<int>> children;
