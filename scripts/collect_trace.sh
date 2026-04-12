@@ -16,7 +16,7 @@ sudo bpftrace tracing/fork_trace.bt > "$OUT_DIR/fork.jsonl" &
 FORK_PID=$!
 sudo bpftrace tracing/connect_trace.bt > "$OUT_DIR/connect.jsonl" &
 CONN_PID=$!
-sudo "$PROJECT_ROOT/tracing/hid_provenance_monitor.sh" > "$OUT_DIR/hid.jsonl" &
+sudo bash "$PROJECT_ROOT/tracing/hid_provenance_monitor.sh" > "$OUT_DIR/hid.jsonl" &
 HID_PID=$!
 
 echo "Tracing started (exec pid=$EXEC_PID fork=$FORK_PID connect=$CONN_PID hid=$HID_PID)."
