@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import os
 import platform
+import signal
 from pathlib import Path
 import re
 import subprocess
@@ -18,6 +20,9 @@ from parsers import (
     parse_summary_file,
 )
 from workflows import CommandSpec, WorkflowAdapter
+
+
+_POSIX = platform.system().lower() != "windows"
 
 
 class RunningProcess:
@@ -39,17 +44,24 @@ class RunningProcess:
         self._thread.start()
 
     def _run(self) -> None:
+        popen_kwargs: dict = dict(
+            cwd=str(self.spec.cwd),
+            env=self.spec.env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
+        # Put the child in its own process group so that killing the group
+        # also terminates any background subprocesses it spawns (e.g. bpftrace
+        # children). Without this, those children keep the stdout pipe open
+        # after bash exits and on_finish is never reached.
+        if _POSIX:
+            popen_kwargs["start_new_session"] = True
+
         try:
-            self._proc = subprocess.Popen(
-                self.spec.argv,
-                cwd=str(self.spec.cwd),
-                env=self.spec.env,
-                stdin=subprocess.PIPE,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
-            )
+            self._proc = subprocess.Popen(self.spec.argv, **popen_kwargs)
         except FileNotFoundError as exc:
             self.on_output(f"[error] missing command: {exc}\n")
             self.on_finish(127)
@@ -78,7 +90,7 @@ class RunningProcess:
         self.on_finish(exit_code)
 
     def _terminate_proc(self, send_newline: bool) -> None:
-        """Signal the process to stop. Must only be called once _proc is set."""
+        """Signal the process to stop. Safe to call from any thread."""
         if self._proc is None or self._proc.poll() is not None:
             return
         if send_newline and self._proc.stdin:
@@ -87,7 +99,17 @@ class RunningProcess:
                 self._proc.stdin.flush()
             except OSError:
                 pass
-        if self._proc.poll() is None:
+        if self._proc.poll() is not None:
+            return
+        if _POSIX:
+            # Kill the entire process group so background bpftrace children
+            # and the hid monitor all die and release the stdout pipe.
+            try:
+                pgid = os.getpgid(self._proc.pid)
+                os.killpg(pgid, signal.SIGTERM)
+            except OSError:
+                self._proc.terminate()
+        else:
             self._proc.terminate()
 
     def is_running(self) -> bool:
@@ -98,7 +120,6 @@ class RunningProcess:
         self._stop_requested = True
         self._send_newline_on_stop = send_newline
         if self._proc is not None:
-            # _proc already assigned — signal it directly.
             self._terminate_proc(send_newline)
 
 
