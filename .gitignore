@@ -4,13 +4,11 @@ build/
 *.obj
 *.exe
 .DS_Store
-<<<<<<< HEAD
 *.pyc
 __pycache__/
-=======
 __pycache__/
 *.pyc
 *.pyo
 *.json
 *.jsonl
->>>>>>> 0770eb4e8a886182f09d5412f72eec90a986c10b
+
