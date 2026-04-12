@@ -1,5 +1,0 @@
-Attaching 4 probes...
-Tracing exec, fork, and connect events... Press Ctrl-C to stop.
-{"ts_ns":578486373718,"type":"fork","parent_pid":4234,"child_pid":4647}
-
-
