@@ -5,7 +5,6 @@ from pathlib import Path
 import re
 import subprocess
 import threading
-import time
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from typing import Callable, Dict, List, Optional
@@ -32,6 +31,8 @@ class RunningProcess:
         self.on_output = on_output
         self.on_finish = on_finish
         self._proc: Optional[subprocess.Popen[str]] = None
+        self._stop_requested = False
+        self._send_newline_on_stop = False
         self._thread = threading.Thread(target=self._run, daemon=True)
 
     def start(self) -> None:
@@ -58,6 +59,10 @@ class RunningProcess:
             self.on_finish(1)
             return
 
+        # Handle stop() called before _proc was assigned.
+        if self._stop_requested:
+            self._terminate_proc(self._send_newline_on_stop)
+
         if self.spec.initial_input and self._proc.stdin:
             try:
                 self._proc.stdin.write(self.spec.initial_input)
@@ -68,28 +73,33 @@ class RunningProcess:
         assert self._proc.stdout is not None
         for line in self._proc.stdout:
             self.on_output(line)
+        # Only this thread calls wait() so on_finish is always triggered.
         exit_code = self._proc.wait()
         self.on_finish(exit_code)
 
-    def is_running(self) -> bool:
-        return self._proc is not None and self._proc.poll() is None
-
-    def stop(self, send_newline: bool = False) -> None:
-        if not self._proc or self._proc.poll() is not None:
+    def _terminate_proc(self, send_newline: bool) -> None:
+        """Signal the process to stop. Must only be called once _proc is set."""
+        if self._proc is None or self._proc.poll() is not None:
             return
         if send_newline and self._proc.stdin:
             try:
                 self._proc.stdin.write("\n")
                 self._proc.stdin.flush()
-                time.sleep(0.2)
             except OSError:
                 pass
         if self._proc.poll() is None:
             self._proc.terminate()
-            try:
-                self._proc.wait(timeout=3)
-            except subprocess.TimeoutExpired:
-                self._proc.kill()
+
+    def is_running(self) -> bool:
+        return self._proc is not None and self._proc.poll() is None
+
+    def stop(self, send_newline: bool = False) -> None:
+        """Request the process to stop. Safe to call from the UI thread."""
+        self._stop_requested = True
+        self._send_newline_on_stop = send_newline
+        if self._proc is not None:
+            # _proc already assigned — signal it directly.
+            self._terminate_proc(send_newline)
 
 
 class DesktopApp:
