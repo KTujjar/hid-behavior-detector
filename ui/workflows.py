@@ -77,10 +77,13 @@ class WorkflowAdapter:
             env=self._base_env(),
         )
 
-    def batch_analyze(self) -> CommandSpec:
+    def batch_analyze(self, since_date: Optional[str] = None) -> CommandSpec:
+        argv = ["bash", self._script_path("scripts/batch_analyze.sh")]
+        if since_date:
+            argv.extend(["--since", since_date])
         return CommandSpec(
             name="batch_analyze",
-            argv=["bash", self._script_path("scripts/batch_analyze.sh")],
+            argv=argv,
             cwd=self.project_root,
             env=self._base_env(),
         )

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import platform
 import signal
+from datetime import date, timedelta
 from pathlib import Path
 import re
 import subprocess
@@ -294,7 +295,33 @@ class DesktopApp:
 
         self.batch_status_var = tk.StringVar(value="No batch run yet.")
         ttk.Label(controls, textvariable=self.batch_status_var).grid(
-            row=0, column=1, padx=4, pady=4, sticky="w"
+            row=0, column=1, columnspan=3, padx=4, pady=4, sticky="w"
+        )
+
+        ttk.Label(controls, text="Include runs since:").grid(
+            row=1, column=0, padx=4, pady=4, sticky="w"
+        )
+        _SINCE_OPTIONS = ["All time", "Last 7 days", "Last 30 days", "Last 90 days", "Custom date"]
+        self.batch_since_choice = tk.StringVar(value="All time")
+        since_combo = ttk.Combobox(
+            controls,
+            textvariable=self.batch_since_choice,
+            values=_SINCE_OPTIONS,
+            state="readonly",
+            width=14,
+        )
+        since_combo.grid(row=1, column=1, padx=4, pady=4, sticky="w")
+        since_combo.bind("<<ComboboxSelected>>", self._on_batch_since_changed)
+
+        self.batch_since_date_var = tk.StringVar(value="")
+        self.batch_since_entry = ttk.Entry(
+            controls, textvariable=self.batch_since_date_var, width=12
+        )
+        self.batch_since_entry.grid(row=1, column=2, padx=4, pady=4, sticky="w")
+        self.batch_since_entry.config(state=tk.DISABLED)
+
+        ttk.Label(controls, text="(YYYY-MM-DD)").grid(
+            row=1, column=3, padx=2, pady=4, sticky="w"
         )
 
         panes = ttk.Panedwindow(self.batch_tab, orient=tk.VERTICAL)
@@ -559,18 +586,49 @@ class DesktopApp:
             for reason in parsed.reasons:
                 self._append_text(self.parsed_report_box, f"- {reason}\n")
 
+    def _on_batch_since_changed(self, _event: object = None) -> None:
+        choice = self.batch_since_choice.get()
+        days_map = {"Last 7 days": 7, "Last 30 days": 30, "Last 90 days": 90}
+        if choice in days_map:
+            since = date.today() - timedelta(days=days_map[choice])
+            self.batch_since_date_var.set(since.isoformat())
+            self.batch_since_entry.config(state=tk.DISABLED)
+        elif choice == "Custom date":
+            self.batch_since_entry.config(state=tk.NORMAL)
+            self.batch_since_entry.focus_set()
+        else:
+            self.batch_since_date_var.set("")
+            self.batch_since_entry.config(state=tk.DISABLED)
+
+    def _get_batch_since_date(self) -> Optional[str]:
+        choice = self.batch_since_choice.get()
+        if choice == "All time":
+            return None
+        raw = self.batch_since_date_var.get().strip()
+        if not raw:
+            return None
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", raw):
+            messagebox.showerror("Invalid date", f"Expected YYYY-MM-DD, got: {raw!r}")
+            return None
+        return raw
+
     def _run_batch_and_evaluate(self) -> None:
         if self.batch_proc and self.batch_proc.is_running():
             messagebox.showinfo("Batch", "Batch workflow is already running.")
             return
 
+        since_date = self._get_batch_since_date()
+        if since_date is None and self.batch_since_choice.get() != "All time":
+            return  # validation failed inside _get_batch_since_date
+
         self.batch_log.delete("1.0", tk.END)
         self.batch_eval_output = ""
         self.batch_run_btn.config(state=tk.DISABLED)
-        self.batch_status_var.set("Running batch_analyze.sh ...")
+        label = f"since {since_date}" if since_date else "all time"
+        self.batch_status_var.set(f"Running batch_analyze.sh ({label}) ...")
         self._set_status("Batch workflow running...")
 
-        spec = self.adapter.batch_analyze()
+        spec = self.adapter.batch_analyze(since_date=since_date)
         self.batch_proc = RunningProcess(
             spec,
             on_output=lambda line: self._ui_output(self.batch_log, line),
