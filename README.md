@@ -1,73 +1,55 @@
 # HID Behavior Detector
 
-OS-level behavioral detection pipeline for suspicious command execution patterns and potential HID-triggered attacks.
+HID Behavior Detector is a Linux-focused telemetry and detection project for spotting suspicious command execution patterns that may be triggered by newly attached HID devices (especially keyboards).
 
-This project captures low-level system telemetry, extracts behavioral features, and scores each run as suspicious or not suspicious.
+It combines process activity (`exec`, `fork`, `connect`) with HID provenance events, then scores each run as suspicious or not suspicious with explainable reasons.
 
-## What this project does
+## Project overview
 
-- Captures Linux OS events with `bpftrace`:
-  - process execution (`exec`)
-  - process forking (`fork`)
-  - network connect syscalls (`connect`)
-- Captures HID input-device provenance with `udevadm`:
-  - input device attach/remove actions
-  - device metadata (vendor/product IDs, serial, dev path)
-  - keyboard indicator and trust flag
-- Merges event streams into a single timeline.
-- Computes behavior features (bursting, timing, process tree depth, HID-to-shell correlation).
-- Produces a scored report with human-readable reasons.
+The project has three main parts:
 
-## Architecture
+- `tracing/`: low-level event collection (`bpftrace` probes + HID monitor via `udevadm`)
+- `analyzer/`: C++ detector (`hid-analyzer`) that parses events, extracts features, and writes reports
+- `ui/desktop_app.py`: Tkinter desktop app that drives collection, analysis, trusted HID config, and report review
 
-- `tracing/`
-  - `exec_trace.bt`, `fork_trace.bt`, `connect_trace.bt`: bpftrace probes
-  - `combined_trace.bt`: combined probe script
-  - `hid_provenance_monitor.sh`: HID provenance collector from udev events
-- `scripts/`
-  - `collect_trace.sh`: records `exec/fork/connect/hid` into a timestamped trace directory
-  - `analyze_trace_dir.sh`: analyzes one trace directory
-  - `combined_trace_script.sh`: single combined trace + HID sidecar capture
-  - `batch_analyze.sh`: batch analysis for normal/scripted datasets
-  - `evaluate_summary.sh`: computes TP/TN/FP/FN from summary output
-- `analyzer/`
-  - C++ analyzer executable (`hid-analyzer`) for parsing, feature extraction, scoring, and report generation
+Detection is currently rule-based (weighted scoring), not ML-based.
 
-## Features used for detection
+## What gets detected
 
-The analyzer currently scores these types of indicators:
+The analyzer currently looks for patterns like:
 
-- shell-like command execution seen (`bash`, `sh`, etc.)
-- high exec burst inside a 1-second sliding window
-- network connect shortly after first shell execution
-- deep process tree
-- interpreter/network tool shortly after shell-like execution
+- shell-like process execution
+- high burst of exec activity in short windows
+- quick network activity after shell start
+- deep process trees
+- interpreter/network tool usage after shell activity
 - untrusted keyboard attach events
-- shell execution soon after HID attach
+- shell activity soon after HID attach
 
-The detector returns:
+Output includes:
 
 - `Suspicion score: <int>`
 - `Suspicious: yes|no`
-- `Reasons:` with weighted evidence strings
+- `Reasons:` with weighted evidence lines
 
-## Prerequisites
+## Recommended way to use this project: Desktop UI
 
-### Runtime collection (Linux)
+The easiest way to run the full workflow is through the UI.
 
-- Linux host or Linux VM
+### 1) Prerequisites
+
+For full capture workflows, run on Linux (host or VM) with:
+
+- Python 3
 - `bpftrace`
-- `udevadm` (from `udev`)
+- `udevadm` (`udev`)
 - `sudo` access
-
-### Analyzer build
-
 - CMake 3.16+
-- C++17 compiler
-  - GCC/Clang on Linux
-  - MSVC on Windows
+- C++17 compiler (GCC/Clang on Linux)
 
-## Build the analyzer
+On Windows, you can still open the UI, but capture scripts are Linux-only.
+
+### 2) Build the analyzer
 
 From repository root:
 
@@ -77,137 +59,131 @@ cmake -S . -B build
 cmake --build build
 ```
 
-Built binary path examples:
+Expected binary:
 
 - Linux: `analyzer/build/hid-analyzer`
 - Windows (MSVC): `analyzer/build/Debug/hid-analyzer.exe`
 
-## Desktop interface (Linux)
+### 3) Launch the UI
 
-A simple desktop UI is available in `ui/desktop_app.py` and exposes all current workflows:
-
-- start/stop live capture (`collect_trace.sh`)
-- run combined trace flow (`normal` / `scripted`)
-- analyze one trace directory or arbitrary JSONL files
-- run batch analysis + confusion-matrix evaluation
-- configure trusted HID allowlist (`TRUSTED_HID_PAIRS`)
-- browse/filter generated reports in `results/`
-
-Run:
+From repository root:
 
 ```bash
 python3 ui/desktop_app.py
 ```
 
-Reference docs for command contracts and UI feature parity:
+### 4) Use each tab
 
-- `ui/DESKTOP_INTERFACE.md`
+#### Run Capture tab
 
-## Quick start (recommended end-to-end flow)
+Use this tab for live collection:
 
-1. Start telemetry collection:
+- **Start Capture** runs `scripts/collect_trace.sh`
+- **Stop Capture** ends collection
+- **Start Combined Trace** runs `scripts/combined_trace_script.sh` for `normal` or `scripted`
 
-```bash
-./scripts/collect_trace.sh
-```
+Outputs are written under `data/` and include process/network streams plus HID stream.
 
-2. Reproduce a test scenario (normal interaction or scripted payload behavior).
-3. Press Enter in the collector terminal to stop capture.
-4. Analyze the generated trace directory:
+#### Single Analysis tab
 
-```bash
-./scripts/analyze_trace_dir.sh data/trace_<timestamp>
-```
+Use this tab to analyze one run:
 
-5. Open the generated report in `results/`.
+- choose **Analyze trace directory** or **Analyze JSONL files**
+- set output report path (optional)
+- click **Run Analysis**
 
-## Data files produced by collection
+You get:
 
-`collect_trace.sh` writes:
+- raw process output (left panel)
+- parsed report fields and reasons (right panel)
+
+#### Batch Evaluation tab
+
+Use this tab to evaluate many runs:
+
+- click **Run Batch + Evaluate**
+- this runs `scripts/batch_analyze.sh` then `scripts/evaluate_summary.sh`
+
+You get:
+
+- `results/summary.tsv`
+- per-run report files in `results/`
+- TP/TN/FP/FN metrics in the UI
+
+#### Trusted HID tab
+
+Use this tab to control trusted HID allowlist behavior:
+
+- add trusted pairs as `vendor:product` (comma or newline separated)
+- click **Validate**
+- click **Save + Apply** to persist to `.hid_desktop_ui.json`
+
+The UI also includes a local HID device list on Linux so you can:
+
+- refresh discovered local HID devices
+- see whether each pair is already trusted
+- add a selected pair directly into the trusted list editor
+
+These trusted pairs are passed to collection/analyze workflows through `TRUSTED_HID_PAIRS`.
+
+#### Reports tab
+
+Use this tab to review generated reports:
+
+- browse recent `results/*_report.txt`
+- filter by suspicious status and minimum score
+- inspect full report content
+
+## UI-first quick workflow
+
+1. Build analyzer once (`analyzer/build/hid-analyzer`)
+2. Launch UI: `python3 ui/desktop_app.py`
+3. In **Trusted HID**, set allowlisted keyboard pairs and save
+4. In **Run Capture**, start a capture, perform your scenario, then stop
+5. In **Single Analysis**, analyze the captured trace directory
+6. In **Reports**, review score, verdict, and reasons
+7. Optionally run **Batch Evaluation** for dataset-level metrics
+
+## Data and report outputs
+
+Typical capture output files:
 
 - `exec.jsonl`
 - `fork.jsonl`
 - `connect.jsonl`
 - `hid.jsonl`
 
-`analyze_trace_dir.sh` always uses `exec/fork/connect` and auto-includes `hid.jsonl` if present.
+Typical report outputs:
 
-## HID provenance and trusted device list
+- `results/<run>_report.txt`
+- `results/summary.tsv` (batch flow)
 
-`tracing/hid_provenance_monitor.sh` supports a trusted USB keyboard allowlist via:
+## Optional CLI usage (without UI)
 
-```bash
-export TRUSTED_HID_PAIRS="046d:c31c,1d6b:0002"
-```
-
-Format is lowercase or mixed-case `vendor_id:product_id` pairs, comma-separated.
-
-If a keyboard attach event does not match this list, it is marked untrusted and contributes to score.
-
-## Analyzer CLI usage
+You can still run the analyzer directly:
 
 ```text
 hid-analyzer <input.jsonl> [more.jsonl ...]
 hid-analyzer --out <report.txt> <input.jsonl> [...]
 ```
 
-Examples:
+Example:
 
 ```bash
-# Analyze one file
-./analyzer/build/hid-analyzer data/combined.jsonl
-
-# Merge multiple streams
 ./analyzer/build/hid-analyzer --out results/run_report.txt \
-  data/trace_2026-03-22_16-45-56/exec.jsonl \
-  data/trace_2026-03-22_16-45-56/fork.jsonl \
-  data/trace_2026-03-22_16-45-56/connect.jsonl \
-  data/trace_2026-03-22_16-45-56/hid.jsonl
+  data/trace_<timestamp>/exec.jsonl \
+  data/trace_<timestamp>/fork.jsonl \
+  data/trace_<timestamp>/connect.jsonl \
+  data/trace_<timestamp>/hid.jsonl
 ```
 
-## Batch evaluation workflow
+## Limitations
 
-If you have datasets organized under `data/normal` and `data/scripted` (or matching `data/normal_*.jsonl`, `data/scripted_*.jsonl`):
+- Runtime telemetry collection is Linux-focused (`bpftrace` + `udevadm`)
+- Detector logic is heuristic scoring and may require threshold tuning
+- HID provenance captures attach/remove metadata, not keystroke content
 
-```bash
-./scripts/batch_analyze.sh
-./scripts/evaluate_summary.sh
-```
+## Reference
 
-Outputs:
-
-- `results/summary.tsv`
-- per-run reports in `results/`
-- confusion-matrix style counts (TP/TN/FP/FN) from `evaluate_summary.sh`
-
-## Event JSON schema (current)
-
-### Process/network events
-
-- `exec`: `ts_ns`, `type`, `pid`, `comm`
-- `fork`: `ts_ns`, `type`, `parent_pid`, `child_pid`, `parent_comm`, `child_comm`
-- `connect`: `ts_ns`, `type`, `pid`, `comm`
-
-### HID provenance events
-
-- `hid_attach`:
-  - `ts_ns`, `type`, `action`, `subsystem`
-  - `devnode`, `devpath`
-  - `vendor_id`, `product_id`, `serial`
-  - `keyboard` (bool)
-  - `trusted` (bool)
-
-## Notes and limitations
-
-- Event coverage is Linux-focused today (`bpftrace` + `udev`).
-- The detector is currently a weighted rule system, not a trained ML classifier.
-- HID provenance captures attach/remove context, not full keystroke content.
-- Thresholds are intentionally simple and may require tuning for your environment.
-
-## Suggested next improvements
-
-- Add baseline profiling per host/user to reduce false positives.
-- Add optional ETW collector path for Windows parity.
-- Add unit tests for parser + detector scoring.
-- Add replay tests from saved JSONL fixtures in CI.
+- UI command contracts and design notes: `ui/DESKTOP_INTERFACE.md`
 
