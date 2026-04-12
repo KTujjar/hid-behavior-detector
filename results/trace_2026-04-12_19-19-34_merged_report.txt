@@ -1,0 +1,21 @@
+Run: merged
+---
+Total events:     795
+Exec events:      155
+Fork events:      289
+Connect events:   351
+Execs / second:   1.301
+Max exec burst (1s window): 18
+Mean event gap (ns): 150071278.890
+Min gap (ns): 1074
+Max gap (ns): 20108740992
+Max tree depth:   8
+PIDs w/ connect:  27
+Shell seen:       yes
+---
+Suspicion score:  6
+Suspicious:       no
+Reasons:
+  - (+3) shell-related exec observed
+  - (+2) high exec burst: max 18 execs within 1 second window
+  - (+1) process tree depth 8 (threshold 3)
