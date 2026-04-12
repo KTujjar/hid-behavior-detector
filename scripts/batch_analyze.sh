@@ -10,11 +10,36 @@ ANALYZER="$BUILD_DIR/hid-analyzer"
 RESULTS_DIR="$PROJECT_ROOT/results"
 mkdir -p "$RESULTS_DIR"
 
+# Optional --since YYYY-MM-DD flag: skip files whose embedded date is before this.
+SINCE_DATE=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --since) SINCE_DATE="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+
+if [[ -n "$SINCE_DATE" ]]; then
+  echo "Filtering: only runs on or after $SINCE_DATE"
+fi
+
 if [[ ! -x "$ANALYZER" ]]; then
   echo "Build the analyzer first, e.g.:"
   echo "  cd analyzer && cmake -S . -B build && cmake --build build"
   exit 1
 fi
+
+# Extract YYYY-MM-DD from filenames like normal_2026-04-12_16-56-13.jsonl.
+# Falls back to the file's mtime if no date is embedded in the name.
+file_date() {
+  local base
+  base="$(basename "$1")"
+  if [[ "$base" =~ _([0-9]{4}-[0-9]{2}-[0-9]{2})_ ]]; then
+    echo "${BASH_REMATCH[1]}"
+  else
+    date -r "$1" +%Y-%m-%d 2>/dev/null || echo "0000-00-00"
+  fi
+}
 
 SUMMARY="$RESULTS_DIR/summary.tsv"
 echo -e "run\ttype\tscore\tflagged" > "$SUMMARY"
@@ -22,6 +47,16 @@ echo -e "run\ttype\tscore\tflagged" > "$SUMMARY"
 analyze_file() {
   local f="$1"
   local kind="$2"
+
+  if [[ -n "$SINCE_DATE" ]]; then
+    local fdate
+    fdate="$(file_date "$f")"
+    if [[ "$fdate" < "$SINCE_DATE" ]]; then
+      echo "Skipping $f (run date $fdate is before $SINCE_DATE)"
+      return
+    fi
+  fi
+
   local base
   base="$(basename "$f" .jsonl)"
   local rep="$RESULTS_DIR/${base}_report.txt"
