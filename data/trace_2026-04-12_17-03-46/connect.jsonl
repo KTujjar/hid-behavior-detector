@@ -1,0 +1,27 @@
+Attaching 1 probe...
+{"ts_ns":2604844394283,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604845027834,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604846495387,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604847105568,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604847699735,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604849055242,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604849605106,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604850030586,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604850546411,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604851285288,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604851717730,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2604852402316,"type":"connect","pid":21909,"comm":"curl"}
+{"ts_ns":2609522129171,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609522569917,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609523546767,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609523806151,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609524732315,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609525619829,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609526234724,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609526649603,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609527442189,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609527860689,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609528328212,"type":"connect","pid":21920,"comm":"curl"}
+{"ts_ns":2609528829615,"type":"connect","pid":21920,"comm":"curl"}
+
+

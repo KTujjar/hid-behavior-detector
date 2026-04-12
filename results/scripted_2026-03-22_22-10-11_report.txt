@@ -1,4 +1,4 @@
-Run: data/scripted/scripted_2026-03-22_22-10-11.jsonl
+Run: /home/vboxuser/Desktop/hid-os-detector/data/scripted/scripted_2026-03-22_22-10-11.jsonl
 ---
 Total events:     79
 Exec events:      18

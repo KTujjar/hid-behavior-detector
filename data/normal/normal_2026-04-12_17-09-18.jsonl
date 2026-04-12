@@ -1,0 +1,26 @@
+Attaching 4 probes...
+Tracing exec, fork, and connect events... Press Ctrl-C to stop.
+{"ts_ns":2919540252138,"type":"fork","parent_pid":1,"child_pid":22090,"parent_comm":"systemd","child_comm":"systemd"}
+{"ts_ns":2919540806538,"type":"fork","parent_pid":1,"child_pid":22091,"parent_comm":"systemd","child_comm":"systemd"}
+{"ts_ns":2919544216899,"type":"fork","parent_pid":1,"child_pid":22092,"parent_comm":"systemd","child_comm":"systemd"}
+{"ts_ns":2921898562259,"type":"fork","parent_pid":22063,"child_pid":22093,"parent_comm":"bash","child_comm":"bash"}
+{"ts_ns":2921903578264,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921903616216,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921904869299,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921905614783,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921906294559,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921907266486,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921907563824,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921907964533,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921908487284,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921908811449,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921908924355,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921908977290,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921908986606,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921909722875,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921911483736,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921912144940,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921912543660,"type":"connect","pid":22093,"comm":"sudo"}
+{"ts_ns":2921913009138,"type":"connect","pid":22093,"comm":"sudo"}
+
+
