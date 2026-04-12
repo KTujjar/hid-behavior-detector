@@ -308,6 +308,33 @@ class DesktopApp:
         self.trusted_status_var = tk.StringVar(value="Current session value loaded from config.")
         ttk.Label(frame, textvariable=self.trusted_status_var).pack(anchor="w", pady=(8, 0))
 
+        ttk.Separator(frame, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=(10, 8))
+        ttk.Label(frame, text="Detected HID devices on this computer").pack(anchor="w")
+
+        hid_controls = ttk.Frame(frame)
+        hid_controls.pack(fill=tk.X, pady=(4, 6))
+        ttk.Button(hid_controls, text="Refresh Device List", command=self._refresh_local_hid_devices).pack(
+            side=tk.LEFT, padx=4
+        )
+        ttk.Button(
+            hid_controls,
+            text="Add Selected Pair to Trusted",
+            command=self._add_selected_hid_pair_to_trusted,
+        ).pack(side=tk.LEFT, padx=4)
+
+        hid_cols = ("pair", "name", "handlers", "trusted")
+        self.local_hid_table = ttk.Treeview(frame, columns=hid_cols, show="headings", height=10)
+        self.local_hid_table.heading("pair", text="vendor:product")
+        self.local_hid_table.heading("name", text="Device Name")
+        self.local_hid_table.heading("handlers", text="Handlers")
+        self.local_hid_table.heading("trusted", text="Trusted")
+        self.local_hid_table.column("pair", width=140, anchor="w")
+        self.local_hid_table.column("name", width=380, anchor="w")
+        self.local_hid_table.column("handlers", width=280, anchor="w")
+        self.local_hid_table.column("trusted", width=90, anchor="center")
+        self.local_hid_table.pack(fill=tk.BOTH, expand=True)
+        self._refresh_local_hid_devices()
+
     def _build_reports_tab(self) -> None:
         controls = ttk.Frame(self.reports_tab)
         controls.pack(fill=tk.X, padx=8, pady=8)
@@ -583,6 +610,111 @@ class DesktopApp:
         self.adapter.set_trusted_pairs(normalized)
         self.trusted_status_var.set("Saved and applied to new runs.")
         self._set_status("Trusted HID pairs saved.")
+        if hasattr(self, "local_hid_table"):
+            self._refresh_local_hid_devices()
+
+    def _current_trusted_pair_set(self) -> set[str]:
+        normalized = self._normalize_pairs(self.trusted_text.get("1.0", tk.END))
+        return {p.lower() for p in normalized.split(",") if p}
+
+    def _discover_local_hid_devices(self) -> List[Dict[str, str]]:
+        if platform.system().lower() != "linux":
+            return []
+        devices_path = Path("/proc/bus/input/devices")
+        if not devices_path.exists():
+            return []
+
+        try:
+            text = devices_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            return []
+
+        discovered: List[Dict[str, str]] = []
+        seen = set()
+        blocks = [b for b in text.split("\n\n") if b.strip()]
+        for block in blocks:
+            info_line = ""
+            name = ""
+            handlers = ""
+            for line in block.splitlines():
+                line = line.strip()
+                if line.startswith("I:"):
+                    info_line = line
+                elif line.startswith("N:"):
+                    m_name = re.search(r'Name="(.*)"', line)
+                    if m_name:
+                        name = m_name.group(1).strip()
+                elif line.startswith("H:"):
+                    m_handlers = re.search(r"Handlers=(.*)", line)
+                    if m_handlers:
+                        handlers = m_handlers.group(1).strip()
+
+            match = re.search(r"Vendor=([0-9A-Fa-f]{4})\s+Product=([0-9A-Fa-f]{4})", info_line)
+            if not match:
+                continue
+
+            handlers_lower = handlers.lower()
+            # Keep only user-facing HID classes that are relevant for trust controls.
+            if not any(key in handlers_lower for key in ("kbd", "mouse", "js", "event")):
+                continue
+
+            pair = f"{match.group(1).lower()}:{match.group(2).lower()}"
+            unique_key = (pair, name, handlers)
+            if unique_key in seen:
+                continue
+            seen.add(unique_key)
+            discovered.append({"pair": pair, "name": name, "handlers": handlers})
+
+        discovered.sort(key=lambda d: (d["pair"], d["name"]))
+        return discovered
+
+    def _refresh_local_hid_devices(self) -> None:
+        for item in self.local_hid_table.get_children():
+            self.local_hid_table.delete(item)
+
+        if platform.system().lower() != "linux":
+            self.trusted_status_var.set("Device detection list is available on Linux hosts.")
+            return
+
+        devices = self._discover_local_hid_devices()
+        trusted_pairs = self._current_trusted_pair_set()
+        for d in devices:
+            is_trusted = "yes" if d["pair"] in trusted_pairs else "no"
+            self.local_hid_table.insert(
+                "",
+                tk.END,
+                values=(d["pair"], d["name"] or "(unknown)", d["handlers"] or "-", is_trusted),
+            )
+
+        if devices:
+            self.trusted_status_var.set(f"Loaded {len(devices)} local HID device(s).")
+        else:
+            self.trusted_status_var.set("No HID devices discovered from /proc/bus/input/devices.")
+
+    def _add_selected_hid_pair_to_trusted(self) -> None:
+        if not self.local_hid_table.selection():
+            messagebox.showinfo("Trusted HID", "Select a device row first.")
+            return
+
+        selected = self.local_hid_table.item(self.local_hid_table.selection()[0]).get("values", [])
+        if not selected:
+            return
+        pair = str(selected[0]).strip().lower()
+        if not re.match(r"^[a-f0-9]{4}:[a-f0-9]{4}$", pair):
+            messagebox.showerror("Trusted HID", f"Invalid selected pair: {pair}")
+            return
+
+        pairs = self._current_trusted_pair_set()
+        if pair in pairs:
+            self.trusted_status_var.set(f"{pair} already in trusted list.")
+            return
+        pairs.add(pair)
+
+        updated = ",".join(sorted(pairs))
+        self.trusted_text.delete("1.0", tk.END)
+        self.trusted_text.insert("1.0", updated)
+        self.trusted_status_var.set(f"Added {pair} to trusted list. Click Save + Apply to persist.")
+        self._refresh_local_hid_devices()
 
     def _load_summary_table(self) -> None:
         for item in self.summary_table.get_children():
