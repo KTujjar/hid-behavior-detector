@@ -101,6 +101,7 @@ You get:
 
 Use this tab to evaluate many runs:
 
+- optionally set an **Include runs since** filter (Last 7/30/90 days or a custom `YYYY-MM-DD` date) to exclude older files without deleting them
 - click **Run Batch + Evaluate**
 - this runs `scripts/batch_analyze.sh` then `scripts/evaluate_summary.sh`
 
@@ -110,21 +111,23 @@ You get:
 - per-run report files in `results/`
 - TP/TN/FP/FN metrics in the UI
 
+> **Note:** Batch Evaluation only picks up files captured with **Start Combined Trace** (stored under `data/normal/` and `data/scripted/`). Captures from **Start Capture** go into timestamped `data/trace_*/` directories and are not included.
+
 #### Trusted HID tab
 
-Use this tab to control trusted HID allowlist behavior:
+Use this tab to manage the keyboard allowlist:
 
-- add trusted pairs as `vendor:product` (comma or newline separated)
-- click **Validate**
-- click **Save + Apply** to persist to `.hid_desktop_ui.json`
+**Trusted pairs list** (top section)
 
-The UI also includes a local HID device list on Linux so you can:
+- **Add Pair** — opens a dialog to type a `vendor:product` hex pair (e.g. `046d:c31c`)
+- **Remove Selected** — removes the highlighted pair from the list instantly
+- **Save + Apply** — persists the list to `.hid_desktop_ui.json` and injects it into all future capture/analyze runs via `TRUSTED_HID_PAIRS`
 
-- refresh discovered local HID devices
-- see whether each pair is already trusted
-- add a selected pair directly into the trusted list editor
+**Detected HID devices** (bottom section, Linux only)
 
-These trusted pairs are passed to collection/analyze workflows through `TRUSTED_HID_PAIRS`.
+- lists all HID devices currently connected to this machine with their `vendor:product`, name, handlers, and whether they are already trusted
+- **Refresh Device List** — re-reads `/proc/bus/input/devices`
+- **Add Selected Pair to Trusted** — adds the selected device's pair directly to the trusted list
 
 #### Reports tab
 
