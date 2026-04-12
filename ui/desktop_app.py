@@ -354,6 +354,19 @@ class DesktopApp:
         self.trusted_text.pack(fill=tk.BOTH, expand=False, pady=(4, 8))
         self.trusted_text.insert("1.0", self.config_state.get("trusted_hid_pairs", ""))
 
+        ttk.Label(frame, text="Current trusted pairs — select one and click Remove to delete:").pack(
+            anchor="w", pady=(8, 2)
+        )
+        pair_row = ttk.Frame(frame)
+        pair_row.pack(fill=tk.X, pady=(0, 6))
+
+        self.trusted_pairs_listbox = tk.Listbox(pair_row, height=4, selectmode=tk.SINGLE, exportselection=False)
+        self.trusted_pairs_listbox.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        ttk.Button(pair_row, text="Remove Selected", command=self._remove_selected_trusted_pair).pack(
+            side=tk.LEFT, padx=(8, 0), anchor="n"
+        )
+        self._refresh_trusted_pairs_listbox()
+
         buttons = ttk.Frame(frame)
         buttons.pack(fill=tk.X)
         ttk.Button(buttons, text="Validate", command=self._validate_trusted_pairs).pack(
@@ -699,6 +712,33 @@ class DesktopApp:
         self.adapter.set_trusted_pairs(normalized)
         self.trusted_status_var.set("Saved and applied to new runs.")
         self._set_status("Trusted HID pairs saved.")
+        self._refresh_trusted_pairs_listbox()
+        if hasattr(self, "local_hid_table"):
+            self._refresh_local_hid_devices()
+
+    def _refresh_trusted_pairs_listbox(self) -> None:
+        if not hasattr(self, "trusted_pairs_listbox"):
+            return
+        self.trusted_pairs_listbox.delete(0, tk.END)
+        normalized = self._normalize_pairs(self.trusted_text.get("1.0", tk.END))
+        for pair in normalized.split(","):
+            if pair.strip():
+                self.trusted_pairs_listbox.insert(tk.END, pair.strip())
+
+    def _remove_selected_trusted_pair(self) -> None:
+        if not self.trusted_pairs_listbox.curselection():
+            messagebox.showinfo("Trusted HID", "Select a pair from the list first.")
+            return
+        pair_to_remove = self.trusted_pairs_listbox.get(
+            self.trusted_pairs_listbox.curselection()[0]
+        ).strip().lower()
+        pairs = self._current_trusted_pair_set()
+        pairs.discard(pair_to_remove)
+        updated = ",".join(sorted(pairs))
+        self.trusted_text.delete("1.0", tk.END)
+        self.trusted_text.insert("1.0", updated)
+        self.trusted_status_var.set(f"Removed {pair_to_remove}. Click Save + Apply to persist.")
+        self._refresh_trusted_pairs_listbox()
         if hasattr(self, "local_hid_table"):
             self._refresh_local_hid_devices()
 
@@ -803,6 +843,7 @@ class DesktopApp:
         self.trusted_text.delete("1.0", tk.END)
         self.trusted_text.insert("1.0", updated)
         self.trusted_status_var.set(f"Added {pair} to trusted list. Click Save + Apply to persist.")
+        self._refresh_trusted_pairs_listbox()
         self._refresh_local_hid_devices()
 
     def _load_summary_table(self) -> None:
