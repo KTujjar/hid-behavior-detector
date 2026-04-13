@@ -1,4 +1,4 @@
-Run: /home/vboxuser/Desktop/hid-os-detector/data/scripted/scripted_2026-03-22_22-07-48.jsonl
+Run: merged
 ---
 Total events:     0
 Exec events:      0

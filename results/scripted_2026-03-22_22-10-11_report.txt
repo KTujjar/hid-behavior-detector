@@ -4,6 +4,9 @@ Total events:     79
 Exec events:      18
 Fork events:      41
 Connect events:   20
+HID attach events:     0
+Keyboard attaches:     0
+Untrusted kbd:         0
 Execs / second:   0.758
 Max exec burst (1s window): 8
 Mean event gap (ns): 304349069.487
