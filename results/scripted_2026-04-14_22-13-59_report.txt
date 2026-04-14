@@ -1,0 +1,24 @@
+Run: merged
+---
+Total events:     23
+Exec events:      4
+Fork events:      5
+Connect events:   14
+HID attach events:     0
+Keyboard attaches:     0
+Untrusted kbd:         0
+Execs / second:   30.326
+Max exec burst (1s window): 4
+Mean event gap (ns): 5995524.545
+Min gap (ns): 250965
+Max gap (ns): 86156238
+Max tree depth:   4
+PIDs w/ connect:  2
+Shell seen:       yes
+---
+Suspicion score:  7
+Suspicious:       yes
+Reasons:
+  - (+3) shell-related exec observed
+  - (+3) network connect within ~13 ms after first shell exec
+  - (+1) process tree depth 4 (threshold 3)
