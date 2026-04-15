@@ -44,6 +44,7 @@ struct Features {
     std::size_t hid_attach_count{};
     std::size_t keyboard_attach_count{};
     std::size_t untrusted_keyboard_attach_count{};
+    std::size_t untrusted_hid_attach_count{};
     double execs_per_second{};
     std::size_t max_exec_burst_1s{};
     double mean_gap_ns{};

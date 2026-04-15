@@ -106,6 +106,9 @@ Features Analyzer::compute_features() const {
             if (first_hid_attach_ts < 0 || e.ts_ns < first_hid_attach_ts) {
                 first_hid_attach_ts = e.ts_ns;
             }
+            if (!e.trusted) {
+                ++f.untrusted_hid_attach_count;
+            }
             if (e.keyboard) {
                 ++f.keyboard_attach_count;
                 if (!e.trusted) {

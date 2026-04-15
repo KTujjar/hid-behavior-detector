@@ -17,6 +17,7 @@ std::string format_report(const std::string& run_label,
     os << "HID attach events:" << std::setw(6) << f.hid_attach_count << "\n";
     os << "Keyboard attaches:" << std::setw(6) << f.keyboard_attach_count << "\n";
     os << "Untrusted kbd:    " << std::setw(6) << f.untrusted_keyboard_attach_count << "\n";
+    os << "Untrusted HID:    " << std::setw(6) << f.untrusted_hid_attach_count << "\n";
     os << "Execs / second:   " << std::fixed << std::setprecision(3) << f.execs_per_second << "\n";
     os << "Max exec burst (1s window): " << f.max_exec_burst_1s << "\n";
     os << "Mean event gap (ns): " << std::fixed << std::setprecision(3) << f.mean_gap_ns << "\n";

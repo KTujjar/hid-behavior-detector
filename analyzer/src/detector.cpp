@@ -48,6 +48,15 @@ DetectionResult detect(const Features& f) {
         os << "untrusted keyboard attach events: " << f.untrusted_keyboard_attach_count;
         add_reason(r.reasons, r.score, 2, os.str());
     }
+    const std::size_t untrusted_non_keyboard_hid =
+        (f.untrusted_hid_attach_count > f.untrusted_keyboard_attach_count)
+            ? (f.untrusted_hid_attach_count - f.untrusted_keyboard_attach_count)
+            : 0;
+    if (untrusted_non_keyboard_hid > 0) {
+        std::ostringstream os;
+        os << "untrusted non-keyboard HID attach events: " << untrusted_non_keyboard_hid;
+        add_reason(r.reasons, r.score, 1, os.str());
+    }
     if (f.first_hid_attach_ts_ns >= 0 && f.first_shell_after_hid_attach_ns >= 0 &&
         f.first_shell_after_hid_attach_ns <= 8000000000LL) {
         const double ms = static_cast<double>(f.first_shell_after_hid_attach_ns) / 1e6;
