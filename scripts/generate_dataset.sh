@@ -38,7 +38,8 @@ run_trace() {
     echo "  Output: $output_file"
     
     # Start HID monitor
-    sudo bash "$HID_MONITOR" > "$hid_file" 2>/dev/null &
+    sudo env TRUSTED_HID_PAIRS="${TRUSTED_HID_PAIRS:-}" \
+      bash "$HID_MONITOR" > "$hid_file" 2>/dev/null &
     local hid_pid=$!
     
     # Start bpftrace

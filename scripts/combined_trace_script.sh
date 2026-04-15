@@ -22,7 +22,8 @@ HID_OUTPUT_FILE="$OUTPUT_DIR/${RUN_TYPE}_${TIMESTAMP}_hid.jsonl"
 
 echo "Saving trace to: $OUTPUT_FILE"
 echo "Saving HID provenance to: $HID_OUTPUT_FILE"
-sudo bash "$PROJECT_ROOT/tracing/hid_provenance_monitor.sh" > "$HID_OUTPUT_FILE" &
+sudo env TRUSTED_HID_PAIRS="${TRUSTED_HID_PAIRS:-}" \
+  bash "$PROJECT_ROOT/tracing/hid_provenance_monitor.sh" > "$HID_OUTPUT_FILE" &
 HID_PID=$!
 
 cleanup() {
